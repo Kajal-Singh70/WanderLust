@@ -30,12 +30,18 @@
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
       <div class="navbar-nav">
        
-        <a class="nav-link" href="/listings\">Explore</a>  
+        <a class="nav-link" href="/listings">Explore</a>  
       </div>
       
       <div class="navbar-nav ms ms-auto ">
-          <form class="d-flex" role="search">
-      <input class="form-control me-2 search-inp" type="search" placeholder="Search destinations" />
+          <form class="d-flex align-items-center gap-2" role="search" action="/listings" method="GET">
+      <input class="form-control search-inp" type="search" name="search" placeholder="Search destinations" value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>" />
+      <select name="country" class="form-select">
+        <option value="">All Countries</option>
+        <% for (let country of (typeof availableCountries !== 'undefined' ? availableCountries : [])) { %>
+          <option value="<%= country %>" <%= (typeof selectedCountry !== 'undefined' && selectedCountry === country) ? 'selected' : '' %>><%= country %></option>
+        <% } %>
+      </select>
       <button class="btn search-btn" type="submit"><i class="fa-solid fa-magnifying-glass"></i>Search</button>
     </form>
       </div>

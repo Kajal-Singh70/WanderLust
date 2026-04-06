@@ -1,8 +1,45 @@
 const Listing = require("../models/listing");
 
+function escapeRegex(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 module.exports.index = async (req,res)=>{
-   const allListings = await Listing.find({});
-   res.render("listings/index", {allListings}); 
+   const searchQuery = (req.query.search || "").trim();
+   const selectedCountry = (req.query.country || "").trim();
+
+   const availableCountries = (await Listing.distinct("country"))
+   .filter(Boolean)
+   .sort();
+
+   const filters = [];
+
+   if(searchQuery){
+    const safeSearchQuery = escapeRegex(searchQuery);
+    filters.push({
+        $or: [
+            {title: {$regex: safeSearchQuery, $options: "i"}},
+            {location: {$regex: safeSearchQuery, $options: "i"}},
+            {description: {$regex: safeSearchQuery, $options: "i"}},
+        ],
+    });
+   }
+
+   const isValidCountry = availableCountries.includes(selectedCountry);
+
+   if(selectedCountry && isValidCountry){
+    filters.push({country: selectedCountry});
+   }
+
+   const query = filters.length ? {$and: filters} : {};
+   const allListings = await Listing.find(query);
+
+   res.render("listings/index", {
+    allListings,
+    searchQuery,
+    selectedCountry: isValidCountry ? selectedCountry : "",
+    availableCountries,
+   }); 
 };
 module.exports.renderNewForms =  (req,res) =>{
     res.render("listings/new.ejs")
@@ -20,7 +57,7 @@ module.exports.showListing =async(req,res)=>{
         .populate("owner");
     if(!listing){
         req.flash("error","Listing you requested for does not exit!");
-       return res.render("/listings");
+       return res.redirect("/listings");
     }
    // console.log(listing);
     res.render("listings/show", {listing});
@@ -42,7 +79,7 @@ module.exports.showListing =async(req,res)=>{
     const listing = await Listing.findById(id);
      if(!listing){
         req.flash("error","Listing you requested for does not exit!");
-        res.render("/listing");
+         return res.redirect("/listings"); 
     }
     let originalImageUrl = listing.image.url;
    originalImageUrl = originalImageUrl.replace(
